@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CATEGORIES, COLORS, STYLES } from "../data/options.js";
-import { getAllItems, saveItem, deleteItem, newId } from "../storage/db.js";
+import { getAllItems, getAllPhotos, saveItemAndPhoto, deleteItemAndPhoto, newId } from "../storage/db.js";
 import ItemForm from "./ItemForm.jsx";
 
 export default function Wardrobe() {
   const [items, setItems] = useState(null); // null = loading
+  const [photoUrls, setPhotoUrls] = useState({}); // item id -> temporary picture address
+  const urlsRef = useRef([]);
   const [loadError, setLoadError] = useState("");
   const [view, setView] = useState({ mode: "list", item: null });
   const [saving, setSaving] = useState(false);
@@ -16,15 +18,24 @@ export default function Wardrobe() {
   const [color, setColor] = useState("");
   const [style, setStyle] = useState("");
 
-  const load = () => getAllItems().then(setItems).catch((e) => setLoadError(e.message || "Storage is not available."));
-  useEffect(() => { load(); }, []);
+  const load = async () => {
+    try {
+      const [list, photos] = await Promise.all([getAllItems(), getAllPhotos()]);
+      urlsRef.current.forEach((u) => URL.revokeObjectURL(u));
+      urlsRef.current = [];
+      const map = {};
+      for (const p of photos) if (p.blob) { const u = URL.createObjectURL(p.blob); map[p.id] = u; urlsRef.current.push(u); }
+      setPhotoUrls(map); setItems(list);
+    } catch (e) { setLoadError(e.message || "Storage is not available."); }
+  };
+  useEffect(() => { load(); return () => urlsRef.current.forEach((u) => URL.revokeObjectURL(u)); }, []);
 
-  async function onSave(values) {
+  async function onSave(values, photo) {
     setSaving(true); setSaveError("");
     try {
       const now = Date.now();
       const old = view.item;
-      await saveItem(old ? { ...old, ...values, updatedAt: now } : { id: newId(), ...values, createdAt: now, updatedAt: now });
+      await saveItemAndPhoto(old ? { ...old, ...values, updatedAt: now } : { id: newId(), ...values, createdAt: now, updatedAt: now }, photo);
       await load();
       setMsg(old ? "Item updated." : "Item added.");
       setView({ mode: "list", item: null });
@@ -32,7 +43,7 @@ export default function Wardrobe() {
     setSaving(false);
   }
   async function onDelete(id) {
-    try { await deleteItem(id); setConfirmId(""); await load(); setMsg("Item deleted."); }
+    try { await deleteItemAndPhoto(id); setConfirmId(""); await load(); setMsg("Item deleted."); }
     catch (e) { setMsg(""); setLoadError(e.message || "Could not delete."); }
   }
 
@@ -45,7 +56,7 @@ export default function Wardrobe() {
   }, [items, q, cat, color, style]);
 
   if (view.mode === "form")
-    return <ItemForm initial={view.item} saving={saving} saveError={saveError}
+    return <ItemForm initial={view.item} photoUrl={view.item ? photoUrls[view.item.id] : ""} saving={saving} saveError={saveError}
       onSave={onSave} onCancel={() => { setSaveError(""); setView({ mode: "list", item: null }); }} />;
 
   if (loadError) return <section className="card"><p role="alert" className="error">Your wardrobe could not be loaded. {loadError}</p></section>;
@@ -79,7 +90,9 @@ export default function Wardrobe() {
           <ul className="items">
             {shown.map((i) => (
               <li key={i.id} className="card item">
-                <div className="photo" aria-hidden="true" style={{ background: COLORS[i.color] }} />
+                <div className="photo" aria-hidden={photoUrls[i.id] ? undefined : "true"} style={photoUrls[i.id] ? undefined : { background: COLORS[i.color] }}>
+                  {photoUrls[i.id] && <img src={photoUrls[i.id]} alt={i.name + ", " + i.color.toLowerCase()} />}
+                </div>
                 <div className="info">
                   <strong>{i.name}</strong>
                   <span className="muted">{i.subcategory} · {i.color}{i.color2 ? " + " + i.color2 : ""} · {i.pattern}{i.style ? " · " + i.style : ""}</span>

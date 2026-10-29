@@ -28,24 +28,37 @@ function friendly(err) {
   return err instanceof Error ? err : new Error("Storage is not available.");
 }
 
-// Runs one small storage job and closes the connection afterwards.
-async function run(store, mode, job) {
+// Runs storage work inside one transaction (all-or-nothing) and closes the connection afterwards.
+async function withTx(stores, mode, job) {
   const db = await openDb();
   return new Promise((resolve, reject) => {
-    let req;
     try {
-      const tx = db.transaction(store, mode);
-      req = job(tx.objectStore(store));
+      const tx = db.transaction(stores, mode);
+      const req = job(tx);
       tx.oncomplete = () => { db.close(); resolve(req ? req.result : undefined); };
       tx.onerror = () => { db.close(); reject(friendly(tx.error)); };
       tx.onabort = () => { db.close(); reject(friendly(tx.error)); };
     } catch (e) { db.close(); reject(friendly(e)); }
   });
 }
+const run = (store, mode, job) => withTx(store, mode, (tx) => job(tx.objectStore(store)));
 
 export const countItems = () => run("items", "readonly", (s) => s.count());
 export const getAllItems = () => run("items", "readonly", (s) => s.getAll());
-export const saveItem = (item) => run("items", "readwrite", (s) => s.put(item));
-export const deleteItem = (id) => run("items", "readwrite", (s) => s.delete(id));
+export const getAllPhotos = () => run("photos", "readonly", (s) => s.getAll());
+
+// photo is {type:"keep"} | {type:"set", blob} | {type:"remove"}. Item and photo are saved together.
+export const saveItemAndPhoto = (item, photo = { type: "keep" }) =>
+  withTx(["items", "photos"], "readwrite", (tx) => {
+    tx.objectStore("items").put(item);
+    if (photo.type === "set") tx.objectStore("photos").put({ id: item.id, blob: photo.blob });
+    else if (photo.type === "remove") tx.objectStore("photos").delete(item.id);
+  });
+
+export const deleteItemAndPhoto = (id) =>
+  withTx(["items", "photos"], "readwrite", (tx) => {
+    tx.objectStore("items").delete(id);
+    tx.objectStore("photos").delete(id);
+  });
 export const newId = () =>
   (globalThis.crypto && crypto.randomUUID ? crypto.randomUUID() : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2));

@@ -1,12 +1,12 @@
 // All the choices shown in forms live here, so they are easy to edit.
 // Category KEYS (tops, bottoms...) are used by the outfit engine later. Do not rename them.
 export const CATEGORIES = {
-  tops: { label: "Tops", subs: ["Shirt", "T-shirt", "Blouse", "Sweater", "Tunic", "Kurta", "Other top"] },
+  tops: { label: "Tops", subs: ["Shirt", "T-shirt", "Blouse", "Sweater", "Tunic", "Kurta", "Kameez", "Other top"] },
   bottoms: { label: "Bottoms", subs: ["Trousers", "Jeans", "Chinos", "Skirt", "Shorts", "Shalwar", "Other bottom"] },
-  onepiece: { label: "One-piece", subs: ["Dress", "Jumpsuit", "Other one-piece"] },
-  layers: { label: "Layers", subs: ["Jacket", "Coat", "Cardigan", "Blazer", "Waistcoat", "Hoodie", "Other layer"] },
+  onepiece: { label: "One-piece", subs: ["Dress", "Jumpsuit", "Shalwar kameez (set)", "Abaya", "Other one-piece"] },
+  layers: { label: "Layers", subs: ["Jacket", "Coat", "Cardigan", "Blazer", "Waistcoat", "Hoodie", "Shawl", "Other layer"] },
   footwear: { label: "Footwear", subs: ["Sneakers", "Flats", "Loafers", "Boots", "Heels", "Sandals", "Other shoes"] },
-  accessories: { label: "Accessories", subs: ["Belt", "Bag", "Scarf", "Watch", "Jewelry", "Other accessory"] },
+  accessories: { label: "Accessories", subs: ["Belt", "Bag", "Scarf", "Dupatta", "Watch", "Jewelry", "Other accessory"] },
 };
 export const COLORS = {
   Black: "#1f1f1f", White: "#f7f7f4", Grey: "#8c8c8c", Navy: "#1f2a4a", Beige: "#d8c3a0", Cream: "#efe6cf",

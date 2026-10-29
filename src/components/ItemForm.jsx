@@ -1,14 +1,37 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CATEGORIES, COLORS, PATTERNS, STYLES, OCCASIONS, SEASONS } from "../data/options.js";
 import { emptyForm, validateItem } from "../utils/validate.js";
+import { checkImageFile, resizeImage } from "../images/imageUtils.js";
 
 function Err({ id, text }) {
   return text ? <p className="error" id={id}>{text}</p> : null;
 }
 
-export default function ItemForm({ initial, onSave, onCancel, saving, saveError }) {
+export default function ItemForm({ initial, photoUrl, onSave, onCancel, saving, saveError }) {
   const [f, setF] = useState(initial ? { ...emptyForm(), ...initial } : emptyForm());
   const [errors, setErrors] = useState({});
+  const [photo, setPhoto] = useState({ action: "keep", blob: null, url: "" }); // keep | set | remove
+  const [photoError, setPhotoError] = useState("");
+  const [preparing, setPreparing] = useState(false);
+  const newUrl = useRef("");
+  useEffect(() => () => { if (newUrl.current) URL.revokeObjectURL(newUrl.current); }, []);
+  const shownPhoto = photo.action === "set" ? photo.url : photo.action === "remove" ? "" : photoUrl || "";
+
+  async function choosePhoto(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    const problem = checkImageFile(file);
+    if (problem) { setPhotoError(problem); return; }
+    setPhotoError(""); setPreparing(true);
+    try {
+      const blob = await resizeImage(file);
+      if (newUrl.current) URL.revokeObjectURL(newUrl.current);
+      newUrl.current = URL.createObjectURL(blob);
+      setPhoto({ action: "set", blob, url: newUrl.current });
+    } catch (err) { setPhotoError(err.message || "That photo could not be used."); }
+    setPreparing(false);
+  }
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
   const toggle = (k, v) => set(k, f[k].includes(v) ? f[k].filter((x) => x !== v) : [...f[k], v]);
 
@@ -16,7 +39,7 @@ export default function ItemForm({ initial, onSave, onCancel, saving, saveError 
     e.preventDefault();
     const r = validateItem(f);
     setErrors(r.errors);
-    if (r.ok) onSave(r.values);
+    if (r.ok) onSave(r.values, photo.action === "set" ? { type: "set", blob: photo.blob } : photo.action === "remove" ? { type: "remove" } : { type: "keep" });
   }
   const bad = (k) => (errors[k] ? { "aria-invalid": true, "aria-describedby": "e-" + k } : {});
 
@@ -78,8 +101,15 @@ export default function ItemForm({ initial, onSave, onCancel, saving, saveError 
       <label htmlFor="f-notes">Notes (optional)</label>
       <textarea id="f-notes" rows="3" maxLength={300} value={f.notes} onChange={(e) => set("notes", e.target.value)} />
 
+      <label htmlFor="f-photo">Photo (optional)</label>
+      {shownPhoto && <img className="preview" src={shownPhoto} alt="Preview of the photo for this item" />}
+      <input id="f-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={choosePhoto} disabled={preparing} aria-describedby="e-photo" />
+      <p className="muted">{preparing ? "Preparing photo…" : shownPhoto ? "Choose another file to replace this photo." : "You can skip this. Photos stay on your device."}</p>
+      <Err id="e-photo" text={photoError} />
+      {shownPhoto && <button type="button" className="btn" onClick={() => setPhoto({ action: "remove", blob: null, url: "" })}>Remove photo</button>}
+
       <div className="row">
-        <button type="submit" className="btn primary" disabled={saving}>{saving ? "Saving…" : "Save item"}</button>
+        <button type="submit" className="btn primary" disabled={saving || preparing}>{saving ? "Saving…" : "Save item"}</button>
         <button type="button" className="btn" onClick={onCancel}>Cancel</button>
       </div>
     </form>

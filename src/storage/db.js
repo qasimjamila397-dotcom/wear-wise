@@ -23,11 +23,29 @@ export function openDb() {
   });
 }
 
-export async function countItems() {
+function friendly(err) {
+  if (err && err.name === "QuotaExceededError") return new Error("Your device storage is full. Free some space and try again.");
+  return err instanceof Error ? err : new Error("Storage is not available.");
+}
+
+// Runs one small storage job and closes the connection afterwards.
+async function run(store, mode, job) {
   const db = await openDb();
   return new Promise((resolve, reject) => {
-    const query = db.transaction("items").objectStore("items").count();
-    query.onsuccess = () => { db.close(); resolve(query.result); };
-    query.onerror = () => { db.close(); reject(query.error || new Error("Could not read storage.")); };
+    let req;
+    try {
+      const tx = db.transaction(store, mode);
+      req = job(tx.objectStore(store));
+      tx.oncomplete = () => { db.close(); resolve(req ? req.result : undefined); };
+      tx.onerror = () => { db.close(); reject(friendly(tx.error)); };
+      tx.onabort = () => { db.close(); reject(friendly(tx.error)); };
+    } catch (e) { db.close(); reject(friendly(e)); }
   });
 }
+
+export const countItems = () => run("items", "readonly", (s) => s.count());
+export const getAllItems = () => run("items", "readonly", (s) => s.getAll());
+export const saveItem = (item) => run("items", "readwrite", (s) => s.put(item));
+export const deleteItem = (id) => run("items", "readwrite", (s) => s.delete(id));
+export const newId = () =>
+  (globalThis.crypto && crypto.randomUUID ? crypto.randomUUID() : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2));

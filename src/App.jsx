@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Home from "./components/Home.jsx";
 import Placeholder from "./components/Placeholder.jsx";
+import Wardrobe from "./components/Wardrobe.jsx";
 
 const TABS = [
   { page: "home", label: "Home" },
@@ -13,7 +14,7 @@ const TABS = [
 function Screen({ page, go }) {
   switch (page) {
     case "wardrobe":
-      return <Placeholder title="My Wardrobe" stage={2}>Add, edit and search your clothes here.</Placeholder>;
+      return <Wardrobe />;
     case "match":
       return <Placeholder title="Outfit Matcher" stage={4}>Pick a piece and see what goes with it.</Placeholder>;
     case "style":

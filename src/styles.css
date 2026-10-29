@@ -33,3 +33,26 @@ button { font: inherit; cursor: pointer; }
   .app { display: flex; flex-direction: column; }
   .top { order: -2; }
 }
+
+/* ---- Stage 2: wardrobe ---- */
+.head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.form label { display: block; font-weight: 600; margin: 14px 0 4px; }
+.form .check { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; margin: 4px 14px 4px 0; }
+fieldset { border: 1px solid var(--line); border-radius: 10px; margin: 14px 0 0; }
+legend { font-weight: 600; padding: 0 6px; }
+input, select, textarea { font: inherit; width: 100%; padding: 10px; border: 1px solid #b9b09d; border-radius: 10px; background: #fff; color: var(--ink); }
+input[type="checkbox"] { width: auto; }
+[aria-invalid="true"] { border-color: #a12a2a; border-width: 2px; }
+.error { color: #8f1f1f; font-weight: 600; margin: 4px 0; }
+.ok { color: var(--sage-dark); font-weight: 600; min-height: 1.4em; margin: 6px 0; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+.btn.danger { background: #8f1f1f; border-color: #8f1f1f; color: #fff; }
+.btn:disabled { opacity: 0.6; cursor: default; }
+.filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.filters input { grid-column: 1 / -1; }
+.items { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.item { display: flex; gap: 14px; margin: 0; padding: 12px; }
+.item .photo { width: 64px; height: 64px; flex: none; border-radius: 10px; border: 1px solid var(--line); }
+.item .info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.item .row { margin-top: 8px; }
+@media (min-width: 720px) { .filters { grid-template-columns: 2fr 1fr 1fr 1fr; } .filters input { grid-column: auto; } }
